@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strconv"
 	"strings"
 
 	// "encoding/json"
@@ -9,9 +10,9 @@ import (
 	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-var Bot *api.BotAPI
+var bot *api.BotAPI
 
-func main() {	
+func main() {
 	var err error
 	err = readConf()
 	if err != nil {
@@ -22,18 +23,18 @@ func main() {
 		log.Panic("erron initArangoDb: ", err)
 	}
 
-	Bot, err = api.NewBotAPI(Config.Bot.Token)
+	bot, err = api.NewBotAPI(Config.Bot.Token)
 	if err != nil {
 		log.Panic(err)
 	}
-	// Bot.Debug = true
+	// bot.Debug = true
 
-	webHookInfo, err := Bot.GetWebhookInfo()
+	webHookInfo, err := bot.GetWebhookInfo()
 	if err != nil {
 		log.Panic(err)
 	}
 	if webHookInfo.IsSet() {
-		_, err := Bot.Request(api.DeleteWebhookConfig{DropPendingUpdates: true})
+		_, err := bot.Request(api.DeleteWebhookConfig{DropPendingUpdates: true})
 		if err != nil {
 			log.Panic(err)
 		}
@@ -44,23 +45,49 @@ func main() {
 		log.Panic("erron SetBotCommands", err)
 	}
 
-	log.Printf("Authorized on account %s", Bot.Self.UserName)		
+	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	updateConfig := api.NewUpdate(0)
 	updateConfig.Timeout = 60
 
-	updatesChan := Bot.GetUpdatesChan(updateConfig)
+	updatesChan := bot.GetUpdatesChan(updateConfig)
 
-	for update := range updatesChan {
-		if update.Message != nil {
-			cmd := update.Message.Command()
-			if cmd != "" {
-				go RunCommand(strings.ToLower(cmd), &update)
-				continue
+	for u := range updatesChan {
+		ctx, err := getCtx(&u)
+		if err != nil {
+			log.Panic(err)
+		}
+		if u.Message != nil {
+			if u.Message.IsCommand() {
+				go handleCommand(strings.ToLower(u.Message.Command()), &u)
+			} else {
+				go handleMessage(&u)
 			}
-			go handleMessage(&update)
+		} else if u.CallbackQuery != nil {
+			subs := strings.Split(u.CallbackQuery.Data, ":")			
+			switch subs[0] {
+			case "set_role": 	
+				go setRoleCb(ctx, &u, subs[1])
+			default: go handleCallbackQuery(&u)
+			}			
 		}
 	}
+}
+
+func getCtx(u *api.Update) (*Ctx, error) {
+	var userKey string
+	var user User
+	if u.Message != nil {
+			userKey = strconv.FormatInt(u.Message.From.ID, 10)
+	} else if u.CallbackQuery != nil {
+			userKey = strconv.FormatInt(u.CallbackQuery.From.ID, 10)
+	}
+	_, err := colUsers.ReadDocument(nil, userKey, &user)
+	if err != nil {
+		return nil, err
+	}
+	ctx := &Ctx{user}
+	return ctx, nil
 }
 
 func handleMessage(u *api.Update) {
@@ -68,19 +95,16 @@ func handleMessage(u *api.Update) {
 
 	msg.ReplyToMessageID = u.Message.MessageID
 	var rec Rec
-	colRecs, err := adb.Collection(nil, "Recs")
-	if err != nil {
-		log.Panic(err)
-	}
+
 	key := u.Message.Text
-	_, err = colRecs.ReadDocument(nil, key, &rec)
+	_, err := colRecs.ReadDocument(nil, key, &rec)
 	if err != nil {
 		log.Printf("err read doc %s: %v", key, err)
 		msg.Text = err.Error()
-		Bot.Send(msg)
+		bot.Send(msg)
 		return
 	}
 	msg.Text = rec.Body
 
-	Bot.Send(msg)
+	bot.Send(msg)
 }

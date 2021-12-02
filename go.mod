@@ -11,6 +11,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/arangodb/go-driver v1.2.1 // indirect
 	github.com/arangodb/go-velocypack v0.0.0-20200318135517-5af53c29c67e // indirect
+	github.com/jinzhu/copier v0.3.2
 	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.2.2 // indirect
