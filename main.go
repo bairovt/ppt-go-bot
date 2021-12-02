@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 
 	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -74,20 +73,11 @@ func updateHandler(u api.Update) {
 			}
 		}
 	} else if u.CallbackQuery != nil {
-		// err := callbackQueryHandler(ctx, &u)
-		subs := strings.Split(u.CallbackQuery.Data, ":")			
-		switch subs[0] {
-		case "set_role": 	
-			err = setRoleCb(ctx, &u, subs[1])
-			if err != nil {
-				log.Panic(err)
-			}
-		default: 
-			err = handleCallbackQuery(&u)
-			if err != nil {
-				log.Panic(err)
-			}
-		}			
+		err := callbackQueryHandler(ctx, &u)
+		if err != nil {
+			log.Panic(err)
+		}
+					
 	} else if u.MyChatMember != nil {
 		// switch u.MyChatMember.NewChatMember.Status {
 		// case "kicked":

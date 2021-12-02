@@ -24,6 +24,19 @@ func commandHandler(ctx *Ctx, u *api.Update) error {
 }
 
 func callbackQueryHandler(ctx *Ctx, u *api.Update) error {
+	subs := strings.Split(u.CallbackQuery.Data, ":")			
+	switch subs[0] {
+	case "set_role": 	
+		err := setRoleCb(ctx, u, subs[1])
+		if err != nil {
+			return err
+		}
+	default: 
+		err := handleCallbackQuery(u)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
