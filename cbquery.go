@@ -12,9 +12,9 @@ func handleCallbackQuery(u *api.Update) error {
 	return nil
 }
 
-func setRoleCb(ctx *Ctx, u *api.Update, role string) error {	
-	type RoleUpd struct{
-		PptRole     string `json:"role"`  
+func setRoleCb(ctx *Ctx, u *api.Update, role string) error {
+	type RoleUpd struct {
+		PptRole string `json:"role"`
 	}
 	roleUpd := RoleUpd{role}
 	_, err := colUsers.UpdateDocument(nil, ctx.user.Key, &roleUpd)

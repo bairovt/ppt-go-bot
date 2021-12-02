@@ -73,9 +73,9 @@ func getCtxAndHandler(u *api.Update) (ctx *Ctx, handler func(*Ctx, *api.Update) 
 	if u.Message != nil {
 		userKey = strconv.FormatInt(u.Message.From.ID, 10)
 		if u.Message.IsCommand() {
-			handler = commandHandler			
+			handler = commandHandler
 		} else {
-			handler =  messageHandler			
+			handler = messageHandler
 		}
 	} else if u.CallbackQuery != nil {
 		userKey = strconv.FormatInt(u.CallbackQuery.From.ID, 10)
@@ -83,7 +83,7 @@ func getCtxAndHandler(u *api.Update) (ctx *Ctx, handler func(*Ctx, *api.Update) 
 	} else if u.MyChatMember != nil {
 		userKey = strconv.FormatInt(u.MyChatMember.From.ID, 10)
 		handler = myChatMemberHandler
-	}  else {
+	} else {
 		// todo refactor not to panic
 		err = errors.New(fmt.Sprintf("unknown update:\n%#v", u))
 		return nil, nil, err

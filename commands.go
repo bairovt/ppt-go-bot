@@ -12,7 +12,7 @@ import (
 type BotCmd struct {
 	BotCommand api.BotCommand
 	fn         func(u *api.Update) error
-	order        int8
+	order      int8
 }
 
 var BotCmds = map[string]BotCmd{
@@ -33,7 +33,7 @@ var BotCmds = map[string]BotCmd{
 			Description: "справка"},
 		helpCmd,
 		2,
-	},		
+	},
 	"test": {
 		api.BotCommand{Command: "test",
 			Description: "test only"},
@@ -47,7 +47,7 @@ func SetBotCommands() error {
 	for _, botCmd := range BotCmds {
 		if botCmd.order != 0 {
 			botCmdList = append(botCmdList, botCmd)
-		}		
+		}
 	}
 	sort.Slice(botCmdList, func(i, j int) bool {
 		return botCmdList[i].order < botCmdList[j].order
@@ -56,7 +56,7 @@ func SetBotCommands() error {
 	for _, botCmd := range botCmdList {
 		BotCommandList = append(BotCommandList, botCmd.BotCommand)
 	}
-	
+
 	config := api.NewSetMyCommands(BotCommandList...)
 	_, err := bot.Request(config)
 	if err != nil {
@@ -93,9 +93,9 @@ func startCmd(u *api.Update) error {
 
 	setRoleIkb := api.NewInlineKeyboardMarkup(
 		api.NewInlineKeyboardRow(
-			api.NewInlineKeyboardButtonData("я - пассажир / отправлю груз 🙋‍♀🙋‍♂📦", "set_role:P"),		
+			api.NewInlineKeyboardButtonData("я - пассажир / отправлю груз 🙋‍♀🙋‍♂📦", "set_role:P"),
 		),
-		api.NewInlineKeyboardRow(			
+		api.NewInlineKeyboardRow(
 			api.NewInlineKeyboardButtonData("я - водитель, возьму пассаж-в/груз 🚙🚛", "set_role:D"),
 		),
 	)
