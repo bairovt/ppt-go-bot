@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"sort"
 	"strconv"
 
 	arangoDrv "github.com/arangodb/go-driver"
@@ -12,7 +12,7 @@ import (
 type BotCmd struct {
 	BotCommand api.BotCommand
 	fn         func(u *api.Update) error
-	set        bool
+	order        int8
 }
 
 var BotCmds = map[string]BotCmd{
@@ -20,45 +20,44 @@ var BotCmds = map[string]BotCmd{
 		api.BotCommand{Command: "start",
 			Description: "start"},
 		startCmd,
-		false,
+		0,
 	},
 	"menu": {
 		api.BotCommand{Command: "menu",
 			Description: "главное меню"},
 		menuCmd,
-		true,
+		3,
 	},
 	"help": {
 		api.BotCommand{Command: "help",
 			Description: "справка"},
 		helpCmd,
-		true,
+		2,
 	},		
 	"test": {
 		api.BotCommand{Command: "test",
 			Description: "test only"},
 		testCmd,
-		false,
+		1,
 	},
 }
 
-func handleCommand(command string, upd *api.Update) {
-	if cmd, ok := BotCmds[command]; ok {
-		cmd.fn(upd)
-	} else {
-		msg := api.NewMessage(upd.Message.Chat.ID, "нет такой команды")
-		bot.Send(msg)
-	}
-}
-
 func SetBotCommands() error {
-	commandsToSet := make([]api.BotCommand, 0)
+	botCmdList := make([]BotCmd, 0, len(BotCmds))
 	for _, botCmd := range BotCmds {
-		if botCmd.set {
-			commandsToSet = append(commandsToSet, botCmd.BotCommand)
-		}
+		if botCmd.order != 0 {
+			botCmdList = append(botCmdList, botCmd)
+		}		
 	}
-	config := api.NewSetMyCommands(commandsToSet...)
+	sort.Slice(botCmdList, func(i, j int) bool {
+		return botCmdList[i].order < botCmdList[j].order
+	})
+	BotCommandList := make([]api.BotCommand, 0, len(botCmdList))
+	for _, botCmd := range botCmdList {
+		BotCommandList = append(BotCommandList, botCmd.BotCommand)
+	}
+	
+	config := api.NewSetMyCommands(BotCommandList...)
 	_, err := bot.Request(config)
 	if err != nil {
 		return err
@@ -66,6 +65,24 @@ func SetBotCommands() error {
 	return nil
 }
 
+func commandHandler(command string, upd *api.Update) error {
+	if cmd, ok := BotCmds[command]; ok {
+		err := cmd.fn(upd)
+		if err != nil {
+			return err
+		}
+	} else {
+		msg := api.NewMessage(upd.Message.Chat.ID, "нет такой команды")
+		_, err := bot.Send(msg)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+
+// command handlers
 func startCmd(u *api.Update) error {
 	var userKey = strconv.FormatInt(u.Message.From.ID, 10)
 	var user = User{
@@ -89,27 +106,21 @@ func startCmd(u *api.Update) error {
 	} else if err != nil {
 		return err
 	}
-	kbMsg := api.NewMessage(u.Message.Chat.ID, "выберите Вашу роль:")
-	// btn1 := api.NewKeyboardButton("btn1")
-	// btn1 := api.InlineKeyboardButton{
-	// 	Text: "btn1",
-	// 	CallbackData: "btn1_cb_data",
-	// }
+	kbMsg := api.NewMessage(u.Message.Chat.ID, "Выберите свою роль:")
+
 	setRoleIkb := api.NewInlineKeyboardMarkup(
 		api.NewInlineKeyboardRow(
-			api.NewInlineKeyboardButtonData("я - пассажир (отправлю груз)", "set_role:P"),		
+			api.NewInlineKeyboardButtonData("я - пассажир / отправлю груз 🙋‍♀🙋‍♂📦", "set_role:P"),		
 		),
 		api.NewInlineKeyboardRow(			
-			api.NewInlineKeyboardButtonData("я - водитель", "set_role:D"),
+			api.NewInlineKeyboardButtonData("я - водитель, возьму пассаж-в/груз 🚙🚛", "set_role:D"),
 		),
 	)
 	kbMsg.ReplyMarkup = setRoleIkb
-
-	// metaStr, err := json.MarshalIndent(meta, "", " ")
 	_, err = bot.Send(kbMsg)
-	// if err != nil {
-	// 	return err
-	// }
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -132,10 +143,13 @@ func helpCmd(u *api.Update) error {
 }
 
 func testCmd(u *api.Update) error {
-	b, _ := json.Marshal(u)
-	fmt.Println(string(b))
+	_, err := json.Marshal(u)
+	if err != nil {
+		panic(err)
+	}
+	// time.Sleep(time.Second * 15)
 	txtmsg := api.NewMessage(u.Message.Chat.ID, "test cmd")
-	_, err := bot.Send(txtmsg)
+	_, err = bot.Send(txtmsg)
 	if err != nil {
 		return err
 	}

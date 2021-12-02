@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -52,25 +53,48 @@ func main() {
 
 	updatesChan := bot.GetUpdatesChan(updateConfig)
 
-	for u := range updatesChan {
-		ctx, err := getCtx(&u)
-		if err != nil {
-			log.Panic(err)
-		}
-		if u.Message != nil {
-			if u.Message.IsCommand() {
-				go handleCommand(strings.ToLower(u.Message.Command()), &u)
-			} else {
-				go handleMessage(&u)
+	for update := range updatesChan {
+		go updateHandler(update)
+	}
+}
+
+func updateHandler(u api.Update) {
+	ctx, err := getCtx(&u)
+	if err != nil {
+		log.Panic(err)
+	}
+	if u.Message != nil {
+		if u.Message.IsCommand() {
+			err := commandHandler(strings.ToLower(u.Message.Command()), &u)
+			if err != nil {
+				log.Panic(err)
 			}
-		} else if u.CallbackQuery != nil {
-			subs := strings.Split(u.CallbackQuery.Data, ":")			
-			switch subs[0] {
-			case "set_role": 	
-				go setRoleCb(ctx, &u, subs[1])
-			default: go handleCallbackQuery(&u)
-			}			
+		} else {
+			err := messageHandler(&u)
+			if err != nil {
+				log.Panic(err)
+			}
 		}
+	} else if u.CallbackQuery != nil {
+		subs := strings.Split(u.CallbackQuery.Data, ":")			
+		switch subs[0] {
+		case "set_role": 	
+			err = setRoleCb(ctx, &u, subs[1])
+			if err != nil {
+				log.Panic(err)
+			}
+		default: 
+			err = handleCallbackQuery(&u)
+			if err != nil {
+				log.Panic(err)
+			}
+		}			
+	} else if u.MyChatMember != nil {
+		// switch u.MyChatMember.NewChatMember.Status {
+		// case "kicked":
+		// case "member":
+		// }
+		fmt.Printf("New status: %#v\n", *&u.MyChatMember.NewChatMember.Status)
 	}
 }
 
@@ -81,30 +105,40 @@ func getCtx(u *api.Update) (*Ctx, error) {
 			userKey = strconv.FormatInt(u.Message.From.ID, 10)
 	} else if u.CallbackQuery != nil {
 			userKey = strconv.FormatInt(u.CallbackQuery.From.ID, 10)
+	} else if u.MyChatMember != nil {	// bot was blocked/unblocked by user
+		userKey = strconv.FormatInt(u.MyChatMember.From.ID, 10)		
+	} else {
+		fmt.Printf("unknown update:\n%#v", u)
 	}
-	_, err := colUsers.ReadDocument(nil, userKey, &user)
-	if err != nil {
-		return nil, err
+	if userKey != "" {
+		_, err := colUsers.ReadDocument(nil, userKey, &user)
+		if err != nil {
+			return nil, err
+		}
 	}
 	ctx := &Ctx{user}
 	return ctx, nil
 }
 
-func handleMessage(u *api.Update) {
+func messageHandler(u *api.Update) error {
 	msg := api.NewMessage(u.Message.Chat.ID, "Message.Text")
 
 	msg.ReplyToMessageID = u.Message.MessageID
-	var rec Rec
+	// var rec Rec
 
-	key := u.Message.Text
-	_, err := colRecs.ReadDocument(nil, key, &rec)
+	// key := u.Message.Text
+	// _, err := colRecs.ReadDocument(nil, key, &rec)
+	// if err != nil {
+	// 	log.Printf("err read doc %s: %v", key, err)
+	// 	msg.Text = err.Error()
+	// 	bot.Send(msg)
+	// 	return
+	// }
+	// msg.Text = rec.Body
+
+	_, err := bot.Send(msg)
 	if err != nil {
-		log.Printf("err read doc %s: %v", key, err)
-		msg.Text = err.Error()
-		bot.Send(msg)
-		return
+		return err
 	}
-	msg.Text = rec.Body
-
-	bot.Send(msg)
+	return nil
 }
