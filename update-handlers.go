@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -60,5 +61,14 @@ func messageHandler(ctx *Ctx, u *api.Update) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func myChatMemberHandler(ctx *Ctx, u *api.Update) error {
+	// switch u.MyChatMember.NewChatMember.Status {
+	// case "kicked":
+	// case "member":
+	// }
+	fmt.Printf("New status: %#v\n", *&u.MyChatMember.NewChatMember.Status)
 	return nil
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -56,79 +57,46 @@ func main() {
 }
 
 func updateHandler(u api.Update) {
-	ctx, err := getCtx(&u)
+	ctx, handler, err := getCtxAndHandler(&u)
 	if err != nil {
 		log.Panic(err)
 	}
-	if u.Message != nil {
-		if u.Message.IsCommand() {
-			err := commandHandler(ctx, &u)
-			if err != nil {
-				log.Panic(err)
-			}
-		} else {
-			err := messageHandler(ctx, &u)
-			if err != nil {
-				log.Panic(err)
-			}
-		}
-	} else if u.CallbackQuery != nil {
-		err := callbackQueryHandler(ctx, &u)
-		if err != nil {
-			log.Panic(err)
-		}
-					
-	} else if u.MyChatMember != nil {
-		// switch u.MyChatMember.NewChatMember.Status {
-		// case "kicked":
-		// case "member":
-		// }
-		fmt.Printf("New status: %#v\n", *&u.MyChatMember.NewChatMember.Status)
+	err = handler(ctx, &u)
+	if err != nil {
+		log.Panic(err)
 	}
 }
 
-// func getCtxAndHandler(u *api.Update) (*Ctx, func(*Ctx, *api.Update) error, error) {
-// 	var userKey string
-// 	var user User
-// 	if u.Message != nil {
-// 			userKey = strconv.FormatInt(u.Message.From.ID, 10)
-// 	} else if u.CallbackQuery != nil {
-// 			userKey = strconv.FormatInt(u.CallbackQuery.From.ID, 10)
-// 	} else if u.MyChatMember != nil {	// bot was blocked/unblocked by user
-// 		userKey = strconv.FormatInt(u.MyChatMember.From.ID, 10)		
-// 	} else {
-// 		fmt.Printf("unknown update:\n%#v", u)
-// 	}
-// 	if userKey != "" {
-// 		_, err := colUsers.ReadDocument(nil, userKey, &user)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 	}
-// 	ctx := &Ctx{user}
-// 	return ctx, nil
-// }
-
-func getCtx(u *api.Update) (*Ctx, error) {
+func getCtxAndHandler(u *api.Update) (ctx *Ctx, handler func(*Ctx, *api.Update) error, err error) {
 	var userKey string
 	var user User
 	if u.Message != nil {
-			userKey = strconv.FormatInt(u.Message.From.ID, 10)
+		userKey = strconv.FormatInt(u.Message.From.ID, 10)
+		if u.Message.IsCommand() {
+			handler = commandHandler			
+		} else {
+			handler =  messageHandler			
+		}
 	} else if u.CallbackQuery != nil {
-			userKey = strconv.FormatInt(u.CallbackQuery.From.ID, 10)
-	} else if u.MyChatMember != nil {	// bot was blocked/unblocked by user
-		userKey = strconv.FormatInt(u.MyChatMember.From.ID, 10)		
-	} else {
-		fmt.Printf("unknown update:\n%#v", u)
+		userKey = strconv.FormatInt(u.CallbackQuery.From.ID, 10)
+		handler = callbackQueryHandler
+	} else if u.MyChatMember != nil {
+		userKey = strconv.FormatInt(u.MyChatMember.From.ID, 10)
+		handler = myChatMemberHandler
+	}  else {
+		// todo refactor not to panic
+		err = errors.New(fmt.Sprintf("unknown update:\n%#v", u))
+		return nil, nil, err
 	}
 	if userKey != "" {
 		_, err := colUsers.ReadDocument(nil, userKey, &user)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+	} else {
+		err = errors.New("empty userKey")
+		return nil, nil, err
 	}
-	ctx := &Ctx{user}
-	return ctx, nil
+	ctx = &Ctx{user}
+	return ctx, handler, nil
 }
-
-
