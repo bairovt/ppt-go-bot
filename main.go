@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	// "encoding/json"
-
 	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -65,17 +63,18 @@ func updateHandler(u api.Update) {
 	}
 	if u.Message != nil {
 		if u.Message.IsCommand() {
-			err := commandHandler(strings.ToLower(u.Message.Command()), &u)
+			err := commandHandler(ctx, &u)
 			if err != nil {
 				log.Panic(err)
 			}
 		} else {
-			err := messageHandler(&u)
+			err := messageHandler(ctx, &u)
 			if err != nil {
 				log.Panic(err)
 			}
 		}
 	} else if u.CallbackQuery != nil {
+		// err := callbackQueryHandler(ctx, &u)
 		subs := strings.Split(u.CallbackQuery.Data, ":")			
 		switch subs[0] {
 		case "set_role": 	
@@ -97,6 +96,28 @@ func updateHandler(u api.Update) {
 		fmt.Printf("New status: %#v\n", *&u.MyChatMember.NewChatMember.Status)
 	}
 }
+
+// func getCtxAndHandler(u *api.Update) (*Ctx, func(*Ctx, *api.Update) error, error) {
+// 	var userKey string
+// 	var user User
+// 	if u.Message != nil {
+// 			userKey = strconv.FormatInt(u.Message.From.ID, 10)
+// 	} else if u.CallbackQuery != nil {
+// 			userKey = strconv.FormatInt(u.CallbackQuery.From.ID, 10)
+// 	} else if u.MyChatMember != nil {	// bot was blocked/unblocked by user
+// 		userKey = strconv.FormatInt(u.MyChatMember.From.ID, 10)		
+// 	} else {
+// 		fmt.Printf("unknown update:\n%#v", u)
+// 	}
+// 	if userKey != "" {
+// 		_, err := colUsers.ReadDocument(nil, userKey, &user)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	}
+// 	ctx := &Ctx{user}
+// 	return ctx, nil
+// }
 
 func getCtx(u *api.Update) (*Ctx, error) {
 	var userKey string
@@ -120,25 +141,4 @@ func getCtx(u *api.Update) (*Ctx, error) {
 	return ctx, nil
 }
 
-func messageHandler(u *api.Update) error {
-	msg := api.NewMessage(u.Message.Chat.ID, "Message.Text")
 
-	msg.ReplyToMessageID = u.Message.MessageID
-	// var rec Rec
-
-	// key := u.Message.Text
-	// _, err := colRecs.ReadDocument(nil, key, &rec)
-	// if err != nil {
-	// 	log.Printf("err read doc %s: %v", key, err)
-	// 	msg.Text = err.Error()
-	// 	bot.Send(msg)
-	// 	return
-	// }
-	// msg.Text = rec.Body
-
-	_, err := bot.Send(msg)
-	if err != nil {
-		return err
-	}
-	return nil
-}

@@ -65,23 +65,6 @@ func SetBotCommands() error {
 	return nil
 }
 
-func commandHandler(command string, upd *api.Update) error {
-	if cmd, ok := BotCmds[command]; ok {
-		err := cmd.fn(upd)
-		if err != nil {
-			return err
-		}
-	} else {
-		msg := api.NewMessage(upd.Message.Chat.ID, "нет такой команды")
-		_, err := bot.Send(msg)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-
 // command handlers
 func startCmd(u *api.Update) error {
 	var userKey = strconv.FormatInt(u.Message.From.ID, 10)
