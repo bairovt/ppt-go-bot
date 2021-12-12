@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 
 	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -26,6 +27,7 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
+	
 	// bot.Debug = true
 
 	webHookInfo, err := bot.GetWebhookInfo()
@@ -38,6 +40,8 @@ func main() {
 			log.Panic(err)
 		}
 	}
+
+	go runHttpServer()
 
 	err = SetBotCommands()
 	if err != nil {
@@ -56,36 +60,44 @@ func main() {
 	}
 }
 
-func updateHandler(u api.Update) {
-	ctx, handler, err := getCtxAndHandler(&u)
+func updateHandler(upd api.Update) {
+	if upd.Message != nil && upd.Message.Command() == "start" {
+		err := startCmdHandler(&upd)
+		if err != nil {
+			log.Panic(err)
+		}
+		return
+	}
+
+	ctx, handler, err := getCtxAndHandler(&upd)
 	if err != nil {
 		log.Panic(err)
 	}
-	err = handler(ctx, &u)
+	err = handler(ctx, &upd)
 	if err != nil {
 		log.Panic(err)
 	}
 }
 
-func getCtxAndHandler(u *api.Update) (ctx *Ctx, handler func(*Ctx, *api.Update) error, err error) {
+func getCtxAndHandler(upd *api.Update) (ctx *Ctx, handler func(*Ctx, *api.Update) error, err error) {
 	var userKey string
 	var user User
-	if u.Message != nil {
-		userKey = strconv.FormatInt(u.Message.From.ID, 10)
-		if u.Message.IsCommand() {
+	if upd.Message != nil {
+		userKey = strconv.FormatInt(upd.Message.From.ID, 10)
+		if upd.Message.IsCommand() {
 			handler = commandHandler
 		} else {
 			handler = messageHandler
 		}
-	} else if u.CallbackQuery != nil {
-		userKey = strconv.FormatInt(u.CallbackQuery.From.ID, 10)
+	} else if upd.CallbackQuery != nil {
+		userKey = strconv.FormatInt(upd.CallbackQuery.From.ID, 10)
 		handler = callbackQueryHandler
-	} else if u.MyChatMember != nil {
-		userKey = strconv.FormatInt(u.MyChatMember.From.ID, 10)
+	} else if upd.MyChatMember != nil {
+		userKey = strconv.FormatInt(upd.MyChatMember.From.ID, 10)
 		handler = myChatMemberHandler
 	} else {
 		// todo refactor not to panic
-		err = errors.New(fmt.Sprintf("unknown update:\n%#v", u))
+		err = errors.New(fmt.Sprintf("unknown update:\n%#v", upd))
 		return nil, nil, err
 	}
 	if userKey != "" {
@@ -99,4 +111,15 @@ func getCtxAndHandler(u *api.Update) (ctx *Ctx, handler func(*Ctx, *api.Update) 
 	}
 	ctx = &Ctx{user}
 	return ctx, handler, nil
+}
+
+func runHttpServer(){
+	http.HandleFunc("/", func (w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Hello World!")
+	})
+	err := http.ListenAndServe(":1818", nil)
+	if err != nil {
+		log.Fatal("can not start http sever")
+	}
+	log.Println("Http server is started")
 }

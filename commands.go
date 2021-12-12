@@ -11,38 +11,32 @@ import (
 
 type BotCmd struct {
 	BotCommand api.BotCommand
-	fn         func(u *api.Update) error
+	fn         func(upd *api.Update) error
 	order      int8
 }
 
-var BotCmds = map[string]BotCmd{
-	"start": {
-		api.BotCommand{Command: "start",
-			Description: "start"},
-		startCmd,
-		0,
-	},
+var BotCmds = map[string]BotCmd{	
 	"menu": {
 		api.BotCommand{Command: "menu",
 			Description: "главное меню"},
-		menuCmd,
+		menuCmdHandler,
 		3,
 	},
 	"help": {
 		api.BotCommand{Command: "help",
 			Description: "справка"},
-		helpCmd,
+		helpCmdHandler,
 		2,
 	},
 	"test": {
 		api.BotCommand{Command: "test",
 			Description: "test only"},
-		testCmd,
-		1,
+		testCmdHandler,
+		0,
 	},
 }
 
-func SetBotCommands() error {
+func getBotCommandList() []api.BotCommand {
 	botCmdList := make([]BotCmd, 0, len(BotCmds))
 	for _, botCmd := range BotCmds {
 		if botCmd.order != 0 {
@@ -56,7 +50,11 @@ func SetBotCommands() error {
 	for _, botCmd := range botCmdList {
 		BotCommandList = append(BotCommandList, botCmd.BotCommand)
 	}
+	return BotCommandList
+}
 
+func SetBotCommands() error {
+	BotCommandList := getBotCommandList()
 	config := api.NewSetMyCommands(BotCommandList...)
 	_, err := bot.Request(config)
 	if err != nil {
@@ -66,22 +64,22 @@ func SetBotCommands() error {
 }
 
 // command handlers
-func startCmd(u *api.Update) error {
-	var userKey = strconv.FormatInt(u.Message.From.ID, 10)
+func startCmdHandler(upd *api.Update) error {
+	var userKey = strconv.FormatInt(upd.Message.From.ID, 10)
 	var user = User{
 		Key:       userKey,
-		ID:        u.Message.From.ID,
-		ChatID:    u.Message.Chat.ID,
-		FirstName: u.Message.From.FirstName,
-		LastName:  u.Message.From.LastName,
-		UserName:  u.Message.From.UserName,
-		StartDate: int64(u.Message.Date),
-		IsBot:     u.Message.From.IsBot,
+		ID:        upd.Message.From.ID,
+		ChatID:    upd.Message.Chat.ID,
+		FirstName: upd.Message.From.FirstName,
+		LastName:  upd.Message.From.LastName,
+		UserName:  upd.Message.From.UserName,
+		StartDate: int64(upd.Message.Date),
+		IsBot:     upd.Message.From.IsBot,
 	}
 	_, err := colUsers.CreateDocument(nil, &user)
 	if arangoDrv.IsArangoErrorWithCode(err, 409) { // conflict unique
 		user.StartDate = 0 // to omitempty
-		user.RestartDate = int64(u.Message.Date)
+		user.RestartDate = int64(upd.Message.Date)
 		_, err = colUsers.UpdateDocument(nil, userKey, user)
 		if err != nil {
 			return err
@@ -89,7 +87,7 @@ func startCmd(u *api.Update) error {
 	} else if err != nil {
 		return err
 	}
-	kbMsg := api.NewMessage(u.Message.Chat.ID, "Выберите свою роль:")
+	kbMsg := api.NewMessage(upd.Message.Chat.ID, "Выберите свою роль:")
 
 	setRoleIkb := api.NewInlineKeyboardMarkup(
 		api.NewInlineKeyboardRow(
@@ -107,8 +105,8 @@ func startCmd(u *api.Update) error {
 	return nil
 }
 
-func menuCmd(u *api.Update) error {
-	txtmsg := api.NewMessage(u.Message.Chat.ID, "menu cmd")
+func menuCmdHandler(upd *api.Update) error {
+	txtmsg := api.NewMessage(upd.Message.Chat.ID, "menu cmd")
 	_, err := bot.Send(txtmsg)
 	if err != nil {
 		return err
@@ -116,8 +114,8 @@ func menuCmd(u *api.Update) error {
 	return nil
 }
 
-func helpCmd(u *api.Update) error {
-	txtmsg := api.NewMessage(u.Message.Chat.ID, "help cmd")
+func helpCmdHandler(upd *api.Update) error {
+	txtmsg := api.NewMessage(upd.Message.Chat.ID, "help cmd")
 	_, err := bot.Send(txtmsg)
 	if err != nil {
 		return err
@@ -125,13 +123,13 @@ func helpCmd(u *api.Update) error {
 	return nil
 }
 
-func testCmd(u *api.Update) error {
-	_, err := json.Marshal(u)
+func testCmdHandler(upd *api.Update) error {
+	_, err := json.Marshal(upd)
 	if err != nil {
 		panic(err)
 	}
 	// time.Sleep(time.Second * 15)
-	txtmsg := api.NewMessage(u.Message.Chat.ID, "test cmd")
+	txtmsg := api.NewMessage(upd.Message.Chat.ID, "test cmd")
 	_, err = bot.Send(txtmsg)
 	if err != nil {
 		return err

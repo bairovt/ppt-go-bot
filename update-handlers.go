@@ -7,15 +7,15 @@ import (
 	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-func commandHandler(ctx *Ctx, u *api.Update) error {
-	command := strings.ToLower(u.Message.Command())
+func commandHandler(ctx *Ctx, upd *api.Update) error {
+	command := strings.ToLower(upd.Message.Command())
 	if cmd, ok := BotCmds[command]; ok {
-		err := cmd.fn(u)
+		err := cmd.fn(upd)
 		if err != nil {
 			return err
 		}
 	} else {
-		msg := api.NewMessage(u.Message.Chat.ID, "нет такой команды")
+		msg := api.NewMessage(upd.Message.Chat.ID, "нет такой команды")
 		_, err := bot.Send(msg)
 		if err != nil {
 			return err
@@ -24,16 +24,16 @@ func commandHandler(ctx *Ctx, u *api.Update) error {
 	return nil
 }
 
-func callbackQueryHandler(ctx *Ctx, u *api.Update) error {
-	subs := strings.Split(u.CallbackQuery.Data, ":")
+func callbackQueryHandler(ctx *Ctx, upd *api.Update) error {
+	subs := strings.Split(upd.CallbackQuery.Data, ":")
 	switch subs[0] {
 	case "set_role":
-		err := setRoleCb(ctx, u, subs[1])
+		err := setRoleCb(ctx, upd, subs[1])
 		if err != nil {
 			return err
 		}
 	default:
-		err := handleCallbackQuery(u)
+		err := handleCallbackQuery(upd)
 		if err != nil {
 			return err
 		}
@@ -41,13 +41,13 @@ func callbackQueryHandler(ctx *Ctx, u *api.Update) error {
 	return nil
 }
 
-func messageHandler(ctx *Ctx, u *api.Update) error {
-	msg := api.NewMessage(u.Message.Chat.ID, "Message.Text")
+func messageHandler(ctx *Ctx, upd *api.Update) error {
+	msg := api.NewMessage(upd.Message.Chat.ID, "Message.Text")
 
-	msg.ReplyToMessageID = u.Message.MessageID
+	msg.ReplyToMessageID = upd.Message.MessageID
 	// var rec Rec
 
-	// key := u.Message.Text
+	// key := upd.Message.Text
 	// _, err := colRecs.ReadDocument(nil, key, &rec)
 	// if err != nil {
 	// 	log.Printf("err read doc %s: %v", key, err)
@@ -64,11 +64,11 @@ func messageHandler(ctx *Ctx, u *api.Update) error {
 	return nil
 }
 
-func myChatMemberHandler(ctx *Ctx, u *api.Update) error {
-	// switch u.MyChatMember.NewChatMember.Status {
+func myChatMemberHandler(ctx *Ctx, upd *api.Update) error {
+	// switch upd.MyChatMember.NewChatMember.Status {
 	// case "kicked":
 	// case "member":
 	// }
-	fmt.Printf("New status: %#v\n", *&u.MyChatMember.NewChatMember.Status)
+	fmt.Printf("New status: %#v\n", *&upd.MyChatMember.NewChatMember.Status)
 	return nil
 }
