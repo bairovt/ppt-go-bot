@@ -1,5 +1,7 @@
 package main
 
+import "ppt-go-bot/db"
+
 type Ctx struct {
-	user UserDoc
+	user db.UserDoc
 }

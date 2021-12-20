@@ -1,4 +1,4 @@
-package main
+package db
 
 type RecDoc struct {
 	Key          string   `json:"_key"`

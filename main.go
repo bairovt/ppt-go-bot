@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"ppt-go-bot/conf"
+	"ppt-go-bot/db"
+
 	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -14,20 +17,12 @@ var bot *api.BotAPI
 
 func main() {
 	var err error
-	err = readConf()
-	if err != nil {
-		log.Panic("erron readConf", err)
-	}
-	err = initArangoDb()
-	if err != nil {
-		log.Panic("erron initArangoDb: ", err)
-	}
 
-	bot, err = api.NewBotAPI(Config.Bot.Token)
+	bot, err = api.NewBotAPI(conf.Config.Bot.Token)
 	if err != nil {
 		log.Panic(err)
 	}
-	
+
 	// bot.Debug = true
 
 	webHookInfo, err := bot.GetWebhookInfo()
@@ -81,7 +76,7 @@ func updateHandler(upd api.Update) {
 
 func getCtxAndHandler(upd *api.Update) (ctx *Ctx, handler func(*Ctx, *api.Update) error, err error) {
 	var userKey string
-	var user UserDoc
+	var user db.UserDoc
 	if upd.Message != nil {
 		userKey = strconv.FormatInt(upd.Message.From.ID, 10)
 		if upd.Message.IsCommand() {
@@ -101,7 +96,7 @@ func getCtxAndHandler(upd *api.Update) (ctx *Ctx, handler func(*Ctx, *api.Update
 		return nil, nil, err
 	}
 	if userKey != "" {
-		_, err := colUsers.ReadDocument(nil, userKey, &user)
+		_, err := db.ColUsers.ReadDocument(nil, userKey, &user)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -113,8 +108,8 @@ func getCtxAndHandler(upd *api.Update) (ctx *Ctx, handler func(*Ctx, *api.Update
 	return ctx, handler, nil
 }
 
-func runHttpServer(){
-	http.HandleFunc("/", func (w http.ResponseWriter, r *http.Request) {
+func runHttpServer() {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello World!")
 	})
 	err := http.ListenAndServe(":1818", nil)

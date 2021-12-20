@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strconv"
 
+	"ppt-go-bot/db"
+
 	arangoDrv "github.com/arangodb/go-driver"
 	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -15,7 +17,7 @@ type BotCmd struct {
 	order      int8
 }
 
-var BotCmds = map[string]BotCmd{	
+var BotCmds = map[string]BotCmd{
 	"menu": {
 		api.BotCommand{Command: "menu",
 			Description: "главное меню"},
@@ -66,7 +68,7 @@ func SetBotCommands() error {
 // command handlers
 func startCmdHandler(upd *api.Update) error {
 	var userKey = strconv.FormatInt(upd.Message.From.ID, 10)
-	var user = UserDoc{
+	var user = db.UserDoc{
 		Key:       userKey,
 		ID:        upd.Message.From.ID,
 		ChatID:    upd.Message.Chat.ID,
@@ -76,11 +78,11 @@ func startCmdHandler(upd *api.Update) error {
 		StartDate: int64(upd.Message.Date),
 		IsBot:     upd.Message.From.IsBot,
 	}
-	_, err := colUsers.CreateDocument(nil, &user)
+	_, err := db.ColUsers.CreateDocument(nil, &user)
 	if arangoDrv.IsArangoErrorWithCode(err, 409) { // conflict unique
 		user.StartDate = 0 // to omitempty
 		user.RestartDate = int64(upd.Message.Date)
-		_, err = colUsers.UpdateDocument(nil, userKey, user)
+		_, err = db.ColUsers.UpdateDocument(nil, userKey, user)
 		if err != nil {
 			return err
 		}

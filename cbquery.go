@@ -1,6 +1,8 @@
 package main
 
 import (
+	"ppt-go-bot/db"
+
 	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -17,7 +19,7 @@ func setRoleCb(ctx *Ctx, upd *api.Update, role string) error {
 		PptRole string `json:"role"`
 	}
 	roleUpd := RoleUpd{role}
-	_, err := colUsers.UpdateDocument(nil, ctx.user.Key, &roleUpd)
+	_, err := db.ColUsers.UpdateDocument(nil, ctx.user.Key, &roleUpd)
 	if err != nil {
 		return err
 	}
