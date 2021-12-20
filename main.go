@@ -75,8 +75,9 @@ func updateHandler(upd api.Update) {
 }
 
 func getCtxAndHandler(upd *api.Update) (ctx *Ctx, handler func(*Ctx, *api.Update) error, err error) {
-	var userKey string
+	var userKey string	
 	var user db.UserDoc
+
 	if upd.Message != nil {
 		userKey = strconv.FormatInt(upd.Message.From.ID, 10)
 		if upd.Message.IsCommand() {
@@ -90,11 +91,11 @@ func getCtxAndHandler(upd *api.Update) (ctx *Ctx, handler func(*Ctx, *api.Update
 	} else if upd.MyChatMember != nil {
 		userKey = strconv.FormatInt(upd.MyChatMember.From.ID, 10)
 		handler = myChatMemberHandler
-	} else {
-		// todo refactor not to panic
+	} else {		
 		err = errors.New(fmt.Sprintf("unknown update:\n%#v", upd))
 		return nil, nil, err
 	}
+
 	if userKey != "" {
 		_, err := db.ColUsers.ReadDocument(nil, userKey, &user)
 		if err != nil {
@@ -104,6 +105,7 @@ func getCtxAndHandler(upd *api.Update) (ctx *Ctx, handler func(*Ctx, *api.Update
 		err = errors.New("empty userKey")
 		return nil, nil, err
 	}
+	
 	ctx = &Ctx{user}
 	return ctx, handler, nil
 }

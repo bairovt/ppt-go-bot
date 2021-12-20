@@ -14,20 +14,20 @@ func checkRegexPoints(body string) (newBody string, err error) {
 	var point db.PointDoc
 
 	newBody = body
-	
+
 	queryPointsWithRegex := `
 		FOR point IN Points
 			FILTER TO_BOOL(point.regex)
 			RETURN point
-		`				
-	cursor, err = db.DB.Query(nil, queryPointsWithRegex, nil)	
+		`
+	cursor, err = db.DB.Query(nil, queryPointsWithRegex, nil)
 	if err != nil {
 		return "", err
 	}
 	defer cursor.Close()
-	
-	for {		
-		_, err = cursor.ReadDocument(nil, &point)		
+
+	for {
+		_, err = cursor.ReadDocument(nil, &point)
 
 		if arangoDriver.IsNoMoreDocuments(err) {
 			break
@@ -35,18 +35,18 @@ func checkRegexPoints(body string) (newBody string, err error) {
 			return "", err
 		}
 
-		if point.Regex != "" {			
+		if point.Regex != "" {
 			re := regexp.MustCompile(point.Regex)
 			newBody = re.ReplaceAllString(newBody, " "+point.Names[0]+" ")
-		}		
+		}
 	}
 	return newBody, nil
 }
 
 func CleanBodyParser(body string) (str string, err error) {
-	str = " " + strings.ToLower(body) + " "	
+	str = " " + strings.ToLower(body) + " "
 	re := regexp.MustCompile(`‐|—`)
-	str = re.ReplaceAllString(str, "-")	
+	str = re.ReplaceAllString(str, "-")
 
 	regexList := []*regexp.Regexp{
 		regexp.MustCompile(`[\.,\?？:!\\\/\(\)\+&_"]|\w|\d|\n`),
@@ -68,31 +68,31 @@ func CleanBodyParser(body string) (str string, err error) {
 		regexp.MustCompile(`тойот\S*|нис+ан\S*|хонд\S*|комфорт\S*`),
 		regexp.MustCompile(`\sили\s|\sдля\s|\sбез\s`),
 	}
-	
+
 	for _, re = range regexList {
 		str = re.ReplaceAllString(str, " ")
 	}
 
-	// убираем пробелы рядом с тире	
+	// убираем пробелы рядом с тире
 	re = regexp.MustCompile(`\s*\-\s*`)
 	str = re.ReplaceAllString(str, "-")
-	
+
 	str, err = checkRegexPoints(str)
 	if err != nil {
 		return "", err
 	}
-	
-	// все тире на пробелы, т.к. парные назв уже обработаны	
+
+	// все тире на пробелы, т.к. парные назв уже обработаны
 	re = regexp.MustCompile(`\-`)
 	str = re.ReplaceAllString(str, " ")
 
-	// 1-2 буквы между пробелами	
+	// 1-2 буквы между пробелами
 	re = regexp.MustCompile(`\s\S{1,2}\s`)
 	str = re.ReplaceAllString(str, " ")
-	
+
 	str = strings.TrimSpace(str)
 
-	// одиночные буквы между пробелами или тире	
+	// одиночные буквы между пробелами или тире
 	re = regexp.MustCompile(`(^\S{1,2}\s)|(\s\S{1,2}$)`)
 	str = re.ReplaceAllString(str, "")
 
