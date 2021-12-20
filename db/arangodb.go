@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"log"
 
 	arangoDriver "github.com/arangodb/go-driver"
@@ -31,8 +30,7 @@ func init() {
 	if err != nil {
 		log.Panic(err)
 	}
-	DB, err = ArangoClient.Database(nil, conf.Config.Adb.Database)
-	fmt.Println(conf.Config.Adb.Database)
+	DB, err = ArangoClient.Database(nil, conf.Config.Adb.Database)	
 	if err != nil {
 		log.Panic(err)
 	}

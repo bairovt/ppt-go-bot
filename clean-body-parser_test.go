@@ -2,13 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"testing"
 )
 
-type TestRec struct {
+type Msg struct {
 	Body        string   `json:"body"`
 	CleanedBody string   `json:"cleanedBody"`
 	Route       []string `json:"route"`
@@ -21,11 +20,19 @@ func TestCleanBodyParser(t *testing.T) {
 	}
 	defer f.Close()
 
-	var testRecs []TestRec
+	var msgs []Msg
 	recsDecoder := json.NewDecoder(f)
-	err = recsDecoder.Decode(&testRecs)
+	err = recsDecoder.Decode(&msgs)
 	if err != nil {
 		log.Panic(err)
 	}
-	fmt.Print(testRecs)
+	for _, msg := range msgs {
+		cleanedBody, err := CleanBodyParser(msg.Body)
+		if err != nil {
+			t.Errorf("err CleanBodyParser on body: %s", msg.Body)
+		}
+		if msg.CleanedBody != "" && cleanedBody != msg.CleanedBody {
+			t.Errorf("%s==%s", cleanedBody, msg.CleanedBody)
+		}
+	}
 }
