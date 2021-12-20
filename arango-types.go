@@ -1,6 +1,6 @@
 package main
 
-type Rec struct {
+type RecDoc struct {
 	Key          string   `json:"_key"`
 	Role         string   `json:"role"` // "P", "D"
 	Tels         []string `json:"tels"`
@@ -19,7 +19,7 @@ type Rec struct {
 	Src         string `json:"src"` // viber, vk
 }
 
-type User struct {
+type UserDoc struct {
 	Key         string `json:"_key"`    // =ID
 	ID          int64  `json:"id"`      // tg
 	IsBot       bool   `json:"is_bot"`  // tg
@@ -33,4 +33,10 @@ type User struct {
 	RestartDate int64  `json:"restart_date"`         // 1635819850,
 	Tel1        string `json:"tel1"`                 // "89144787432",
 	Tel2        string `json:"tel2"`                 // "89144787432",
+}
+
+type PointDoc struct {
+  Name string `json:"name"`
+  Names []string `json:"names"`
+  Regex string `json:"regex"`
 }

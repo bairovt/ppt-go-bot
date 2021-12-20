@@ -66,7 +66,7 @@ func SetBotCommands() error {
 // command handlers
 func startCmdHandler(upd *api.Update) error {
 	var userKey = strconv.FormatInt(upd.Message.From.ID, 10)
-	var user = User{
+	var user = UserDoc{
 		Key:       userKey,
 		ID:        upd.Message.From.ID,
 		ChatID:    upd.Message.Chat.ID,

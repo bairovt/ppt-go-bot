@@ -81,7 +81,7 @@ func updateHandler(upd api.Update) {
 
 func getCtxAndHandler(upd *api.Update) (ctx *Ctx, handler func(*Ctx, *api.Update) error, err error) {
 	var userKey string
-	var user User
+	var user UserDoc
 	if upd.Message != nil {
 		userKey = strconv.FormatInt(upd.Message.From.ID, 10)
 		if upd.Message.IsCommand() {

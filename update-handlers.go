@@ -45,7 +45,7 @@ func messageHandler(ctx *Ctx, upd *api.Update) error {
 	msg := api.NewMessage(upd.Message.Chat.ID, "Message.Text")
 
 	msg.ReplyToMessageID = upd.Message.MessageID
-	// var rec Rec
+	// var rec RecDoc
 
 	// key := upd.Message.Text
 	// _, err := colRecs.ReadDocument(nil, key, &rec)

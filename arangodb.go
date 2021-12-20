@@ -1,15 +1,15 @@
 package main
 
 import (
-	arangoDrv "github.com/arangodb/go-driver"
+	arangoDriver "github.com/arangodb/go-driver"
 	"github.com/arangodb/go-driver/http"
 )
 
-var conn arangoDrv.Connection
-var adb arangoDrv.Database
-var arangoClient arangoDrv.Client
-var colRecs arangoDrv.Collection
-var colUsers arangoDrv.Collection
+var conn arangoDriver.Connection
+var adb arangoDriver.Database
+var arangoClient arangoDriver.Client
+var colRecs arangoDriver.Collection
+var colUsers arangoDriver.Collection
 
 func initArangoDb() error {
 	var err error
@@ -19,9 +19,9 @@ func initArangoDb() error {
 	if err != nil {
 		return err
 	}
-	arangoClient, err = arangoDrv.NewClient(arangoDrv.ClientConfig{
+	arangoClient, err = arangoDriver.NewClient(arangoDriver.ClientConfig{
 		Connection:     conn,
-		Authentication: arangoDrv.BasicAuthentication(Config.Adb.Username, Config.Adb.Password),
+		Authentication: arangoDriver.BasicAuthentication(Config.Adb.Username, Config.Adb.Password),
 	})
 	if err != nil {
 		return err
