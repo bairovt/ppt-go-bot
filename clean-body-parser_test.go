@@ -7,32 +7,38 @@ import (
 	"testing"
 )
 
-type Msg struct {
+type MsgCase struct {
 	Body        string   `json:"body"`
 	CleanedBody string   `json:"cleanedBody"`
 	Route       []string `json:"route"`
 }
 
-func TestCleanBodyParser(t *testing.T) {
-	f, err := os.Open("./tests/msgs.json")
+var msgCases []MsgCase
+
+func TestMain(m *testing.M){	
+	f, err := os.Open("./test/msg-cases.json")
 	if err != nil {
 		log.Fatal(err)
-	}
-	defer f.Close()
-
-	var msgs []Msg
+	}	
 	recsDecoder := json.NewDecoder(f)
-	err = recsDecoder.Decode(&msgs)
+	err = recsDecoder.Decode(&msgCases)
 	if err != nil {
 		log.Panic(err)
 	}
-	for _, msg := range msgs {
-		cleanedBody, err := CleanBodyParser(msg.Body)
+
+	code := m.Run()	
+	f.Close()
+	os.Exit(code)
+}
+
+func TestCleanBodyParser(t *testing.T) {	
+	for _, testCase := range msgCases {
+		cleanedBody, err := CleanBodyParser(testCase.Body)
 		if err != nil {
-			t.Errorf("err CleanBodyParser on body: %s", msg.Body)
+			t.Errorf("err CleanBodyParser on body: %s", testCase.Body)
 		}
-		if msg.CleanedBody != "" && cleanedBody != msg.CleanedBody {
-			t.Errorf("%s==%s", cleanedBody, msg.CleanedBody)
+		if testCase.CleanedBody != "" && cleanedBody != testCase.CleanedBody {
+			t.Errorf("%s===%s", cleanedBody, testCase.CleanedBody)
 		}
 	}
 }
